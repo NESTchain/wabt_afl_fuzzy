@@ -1547,8 +1547,8 @@ Result Thread::CallHost(HostFunc* func) {
   size_t num_params = sig->param_types.size();
   size_t num_results = sig->result_types.size();
 
-  static thread_local TypedValues params(num_params);
-  static thread_local TypedValues results(num_results);
+  static thread_local TypedValues params;
+  static thread_local TypedValues results;
   static thread_local bool _init = false;
   if (!_init) {
     params.reserve(32);
