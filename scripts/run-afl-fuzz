@@ -37,15 +37,21 @@ fi
 CORPUS=${TMPDIR}/corpus
 mkdir -p $CORPUS
 rm -rf ${CORPUS}/*
+
 for wast in ${CORPUS_SRC}/*.wast; do
+    $WABT_BIN/wat2wasm $wast
+done
+mv ./*.wasm $CORPUS
+
+for wast in ${WABT}/test/interp/*.txt; do
     $WABT_BIN/wat2wasm $wast
 done
 mv ./*.wasm $CORPUS
 
 # Spawn the slave fuzzers
 for i in `seq 0 $NUM_SLAVES`; do
-    afl-fuzz -i ${CORPUS} -o ${FINDINGS} -m 9999999999999999999 -t 5000 -S slave${i} -- ${WABT_BIN}/spectest-interp @@ 1>slave${i}.stdout.txt 2>slave${i}.stderr.txt &
+    afl-fuzz -i ${CORPUS} -o ${FINDINGS} -m 9999999999999999999 -t 5000 -S slave${i} -- ${WABT_BIN}/wasm-interp @@ 1>slave${i}.stdout.txt 2>slave${i}.stderr.txt &
 done
 
 # Run the master fuzzer
-afl-fuzz -i ${CORPUS} -o ${FINDINGS} -m 9999999999999999999 -t 5000 -M master -- ${WABT_BIN}/spectest-interp @@
+afl-fuzz -i ${CORPUS} -o ${FINDINGS} -m 9999999999999999999 -t 5000 -M master -- ${WABT_BIN}/wasm-interp @@
