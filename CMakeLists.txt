@@ -14,9 +14,15 @@
 # limitations under the License.
 #
 
+#
+#
+# This file has been modified by block.one
+#
+#
+
 cmake_minimum_required(VERSION 2.6)
 project(WABT)
-
+include(GNUInstallDirs)
 option(BUILD_TESTS "Build GTest-based tests" ON)
 option(BUILD_TOOLS "Build wabt commandline tools" ON)
 option(RUN_RE2C "Run re2c" ON)
@@ -254,7 +260,11 @@ add_library(wabt STATIC
   src/tracing.cc
   src/utf8.cc
 )
-
+install( TARGETS wabt 
+   RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
+   LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+   ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+)
 
 if (NOT EMSCRIPTEN)
   if (CODE_COVERAGE)

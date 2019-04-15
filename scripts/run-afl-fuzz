@@ -1,0 +1,51 @@
+#!/bin/sh -ex
+
+WABT="$1"
+WABT_BIN=.
+
+TMPDIR=./tmp
+FINDINGS=${TMPDIR}/findings
+CORPUS_SRC=${WABT}/Test/fuzz
+
+if [ -n "$2" ] ; then
+  NUM_SLAVES=$2
+else
+  NUM_SLAVES=0
+fi
+
+# Compile WABT using the AFL compiler and ASAN.
+export CC=afl-clang-fast
+export CXX=afl-clang-fast++
+export AFL_HARDEN=1
+cmake ${WABT} -DUSE_ASAN=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo
+make -j4
+
+# Set up ASAN to ignore seg faults, ignore leaks, and abort on error.
+export ASAN_OPTIONS=handle_segv=0:detect_leaks=0:abort_on_error=1:symbolize=0
+
+# Make a ramdisk to hold the AFL temp files.
+if [ ! -d $TMPDIR ] ; then
+  mkdir $TMPDIR && chmod 777 $TMPDIR
+  sudo mount -t tmpfs -o size=512M tmpfs $TMPDIR
+fi
+
+if [ ! -d $FINDINGS ] ; then
+  mkdir $FINDINGS
+fi
+
+# Assemble the corpus.
+CORPUS=${TMPDIR}/corpus
+mkdir -p $CORPUS
+rm -rf ${CORPUS}/*
+for wast in ${CORPUS_SRC}/*.wast; do
+    $WABT_BIN/wat2wasm $wast
+done
+mv ./*.wasm $CORPUS
+
+# Spawn the slave fuzzers
+for i in `seq 0 $NUM_SLAVES`; do
+    afl-fuzz -i ${CORPUS} -o ${FINDINGS} -m 9999999999999999999 -t 5000 -S slave${i} -- ${WABT_BIN}/spectest-interp @@ 1>slave${i}.stdout.txt 2>slave${i}.stderr.txt &
+done
+
+# Run the master fuzzer
+afl-fuzz -i ${CORPUS} -o ${FINDINGS} -m 9999999999999999999 -t 5000 -M master -- ${WABT_BIN}/spectest-interp @@
