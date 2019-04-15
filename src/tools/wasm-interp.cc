@@ -45,7 +45,7 @@ static const char* s_infile;
 static Thread::Options s_thread_options;
 static Stream* s_trace_stream;
 static bool s_run_all_exports;
-static bool s_host_print;
+static bool s_host_print = true;
 static Features s_features;
 
 static std::unique_ptr<FileStream> s_log_stream;
@@ -161,7 +161,7 @@ static interp::Result PrintCallback(const HostFunc* func,
                                     const interp::FuncSignature* sig,
                                     const TypedValues& args,
                                     TypedValues& results) {
-  printf("called host ");
+  //printf("called host ");
   WriteCall(s_stdout_stream.get(), func->module_name, func->field_name, args,
             results, interp::Result::Ok);
   return interp::Result::Ok;
